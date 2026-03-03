@@ -35,19 +35,21 @@ if prompt := st.chat_input("Ask about sales, inventory, or customers..."):
 # Quick Suggestion Buttons
 st.markdown("---")
 st.markdown("**Suggested Queries:**")
+
+def process_query(query):
+    st.session_state.messages.append({"role": "user", "content": query})
+    with st.spinner("Analyzing business data..."):
+        response = get_ai_response(query)
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.rerun()
+
 col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Are there any inventory stockout risks?"):
-        prompt = "inventory"
-        st.session_state.messages.append({"role": "user", "content": "Are there any inventory stockout risks?"})
-        st.rerun()
+        process_query("Are there any inventory stockout risks?")
 with col2:
     if st.button("How are our recent sales?"):
-        prompt = "sales"
-        st.session_state.messages.append({"role": "user", "content": "How are our recent sales?"})
-        st.rerun()
+        process_query("How are our recent sales?")
 with col3:
     if st.button("Any pending customer returns?"):
-        prompt = "returns"
-        st.session_state.messages.append({"role": "user", "content": "Any pending customer returns?"})
-        st.rerun()
+        process_query("Any pending customer returns?")

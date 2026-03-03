@@ -1,4 +1,4 @@
-# AI Retail Copilot 🛍️
+# AI Retail Copilot 
 
 Welcome to the **AI Retail Copilot**! This platform leverages predictive analytics and Generative AI concepts to help retail and Small-to-Medium Business (SMB) owners run their businesses more efficiently.
 

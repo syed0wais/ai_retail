@@ -44,9 +44,8 @@ def get_customer_inquiries():
     return pd.DataFrame(inquiries)
 
 def get_ai_response(query):
-    import json
-    import boto3
-    from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+    import os
+    from openai import OpenAI
 
     try:
         # Fetch current mock data to give context to the LLM
@@ -69,36 +68,37 @@ def get_ai_response(query):
         )
 
         try:
-            # Initialize the Bedrock client
-            bedrock = boto3.client(service_name='bedrock-runtime', region_name='us-east-1')
-
-            # We'll use Anthropic Claude v2, a common and powerful option in Bedrock
-            model_id = 'anthropic.claude-v2'
+            from dotenv import load_dotenv
+            load_dotenv(override=True)
+            api_key = os.environ.get("OPENAI_API_KEY")
+            base_url = os.environ.get("OPENAI_BASE_URL", "https://bedrock-mantle.eu-north-1.api.aws/v1")
             
-            # Format the prompt specifically for Claude
-            claude_prompt = f"\\n\\nHuman: {prompt}\\n\\nAssistant:"
-            
-            payload = {
-                "prompt": claude_prompt,
-                "max_tokens_to_sample": 100,
-                "temperature": 0.5,
-                "top_p": 0.9,
-            }
+            if not api_key:
+                return "Configuration Error: OPENAI_API_KEY is missing. Please check your .env file."
+                
+            client = OpenAI(api_key=api_key, base_url=base_url)
 
-            response = bedrock.invoke_model(
-                modelId=model_id,
-                body=json.dumps(payload),
-                contentType='application/json',
-                accept='application/json'
-            )
-
-            response_body = json.loads(response.get('body').read())
-            return response_body.get('completion', '').strip()
-
-        except (NoCredentialsError, PartialCredentialsError):
-            return "AWS Configuration Error: Amazon Bedrock requires valid AWS Credentials. Please set your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to use the Generative AI features."
+            try:
+                # The hackathon environment uses responses API
+                response = client.responses.create(
+                    model="openai.gpt-oss-120b",
+                    input=[
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                return response.output_text.strip()
+            except Exception:
+                # Fallback to standard chat completions
+                response = client.chat.completions.create(
+                    model="openai.gpt-oss-120b",
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=100,
+                    temperature=0.5
+                )
+                return response.choices[0].message.content.strip()
         except Exception as e:
-             return f"Amazon Bedrock API Error: {str(e)}"
-
+            return f"AI Proxy API Error: {str(e)}"
     except Exception as e:
         return f"Sorry, I encountered an error connecting to the AI: {str(e)}"
